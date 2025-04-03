@@ -154,16 +154,32 @@ def itp(command: str):
     elif com[0] == "for":
         try:
             args = command[4:].split(": ")
-            new = args[0]
-            start = itp(args[1])[0]
-            c = itp(args[2])[0]
+            new = []
+            start = []
+            for value in args[1].split("^"):
+                start.append(itp(value)[0])
+            
+            for var in args[0].split("^"):
+                new.append(var)
+            
             itp("local.create \"for\"")
             itp("local.import \"for\"")
             itp("local.set \"for\"")
-            for i in start:
-                itp("local.set \"for\"")
-                itp(f"{new} = {i}")
-                itp(c)
+            for i in range(len(start[0])):
+                if not (keyboard.is_pressed("end") or keyboard.is_pressed("esc")):
+                    t = {}
+                    for x in range(len(start[0])):
+                        for n in new:
+                            if n not in t.keys():
+                                t[n] = [start[new.index(n)][x]]
+                            else:
+                                t[n].append(start[new.index(n)][x])
+                    for k, v in t.items():
+                        itp(f"{k} = {v[i]}")
+                    else:
+                        itp(itp(args[2])[0])
+                else:
+                    break
             else:
                 itp("local.delOblast \"for\"")
                 ram["GLOBAL"]["last"] = "\n"
@@ -215,6 +231,12 @@ def itp(command: str):
             return itp(args[1])[0].join(itp(args[0])[0]), True, "spliting"
         except:
             return "", False, "TypeError: ANY not supported 'join' maybe LIST to 1 arg or STR to 2 arg?"
+    elif com[0] == "len":
+        try:
+            el = command[4:]
+            return len(itp(el)[0]), True, "lenning"
+        except:
+            return 0, False, "TypeError: ANY should be iterable and not literable"
     elif com[0] == "not":
         op = "not"
         try:
