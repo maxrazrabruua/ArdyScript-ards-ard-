@@ -77,7 +77,7 @@ def itp(command: str):
             "console": "<class: Console>"
         }
         return None, True, "Область переменных была создана"
-    elif com[0] == "local.import":
+    elif com[0] == "local.export":
         if itp(command[13:])[0] in ram.keys():
             ram[itp(command[13:])[0]].update(ram[ram["GLOBAL"]["local.nowOblast"]])
             return None, True, "Импорт в другую область переменных"
@@ -92,8 +92,11 @@ def itp(command: str):
         else:
             return None, False, f"OblastError: Oblast vars '{itp(com[1])[0]}' is not exists"
     elif com[0] == "raise.debug":
-        result = itp(itp(command[(len("raise.debug") + 1):])[0])[2]
-        return result, True, "Дебаг"
+        try:
+            result = itp(itp(command[(len("raise.debug") + 1):])[0])[2]
+            return result, True, "Дебаг"
+        except:
+            return "FormatError: problem of format", True, "Дебаг"
     elif com[0] == "itp.ram":
         print(ram)
         return None, True, "Вывод памяти"
@@ -249,6 +252,90 @@ def itp(command: str):
             return itp(args[1])[0].join(itp(args[0])[0]), True, "spliting"
         except:
             return "", False, "TypeError: ANY not supported 'join' maybe LIST to 1 arg or STR to 2 arg?"
+    elif com[0] == "dict":
+        try:
+            args = command[5:].split(": ")
+            keys = itp(args[0])[0]
+            values = itp(args[1])[0]
+            return {k: v for k, v in zip(keys, values)}, True, "Создание словаря"
+        except:
+            return {}, False, "TypeError: 2 args should be LISTs and not ANYs(not LISTs)"
+    elif com[0] == "value":
+        args = command[6:].split(": ")
+        if len(args) < 2:
+            return None, False, f"LenError: now {len(args)} args, should be 2 args!"
+        central = itp(args[0])[0]
+        index = itp(args[1])[0]
+        if isinstance(central, dict):
+            try:
+                return central[index], True, "Индексирование словаря"
+            except:
+                return None, False, f"KeyError: '{index}' not in dict"
+        elif isinstance(central, (str, list)):
+            if isinstance(index, int):
+                try:
+                    return central[index], True, "Индексирование несловарного элемента"
+                except:
+                    return None, False, f"IndexError: '{str(index)}' not in iterable-element"
+            else:
+                return None, False, "TypeError: index-iteralbe not dict should be INT and not ANY(not INT)"
+        else:
+            return None, False, "TypeError: ANY should be iterable and not literable"
+    elif com[0] == "set":
+        args = command[4:].split(": ")
+        if len(args) < 3:
+            return None, False, f"LenError: now {len(args)} args, should be 3 args!"
+        central = itp(args[0])[0]
+        index = itp(args[1])[0]
+        value = itp(args[2])[0]
+        if isinstance(central, dict):
+            central[index] = value
+            return central, True, "Индексирование словаря"
+        elif isinstance(central, (str, list)):
+            if isinstance(index, int):
+                try:
+                    central[index] = value
+                    return central, True, "Индексирование несловарного элемента"
+                except:
+                    return None, False, f"IndexError: '{str(index)}' not in iterable-element"
+            else:
+                return None, False, "TypeError: index-iteralbe not dict should be INT and not ANY(not INT)"
+        else:
+            return None, False, "TypeError: ANY should be iterable and not literable"
+    elif com[0] == "append":
+        args = command[7:].split(": ")
+        if len(args) < 2:
+            return None, False, f"LenError: now {len(args)} args, should be 2 args!"
+        central = itp(args[0])[0]
+        appending = itp(args[1])[0]
+        if isinstance(central, list):
+            return central + [appending], True, "append"
+        else:
+            return [], False, "TypeError: parent is not LIST, should be LIST"
+    elif com[0] == "remove":
+        args = command[7:].split(": ")
+        if len(args) < 2:
+            return None, False, f"LenError: now {len(args)} args, should be 2 args!"
+        central = itp(args[0])[0]
+        removing = itp(args[1])[0]
+        if isinstance(central, list):
+            try:
+                central.remove(removing)
+                return central, True, "remove"
+            except:
+                return central, True, "remove"
+        else:
+            return [], False, "TypeError: parent is not LIST, should be LIST"
+    elif com[0] == "keys":
+        try:
+            return itp(command[5:])[0].keys(), True, "Ключики"
+        except:
+            return [], False, "TypeError: element is not DICT"
+    elif com[0] == "values":
+        try:
+            return itp(command[7:])[0].values(), True, "Значения"
+        except:
+            return [], False, "TypeError: element is not DICT"
     elif com[0] == "len":
         try:
             el = command[4:]
@@ -386,7 +473,7 @@ def itp(command: str):
             int(float(command))
         except:
             if command[0] == '"' and command[-1] == '"':
-                return command[1:-1].replace("\\n", "\n").replace("\\c", ";").replace("\\z", ",").replace("\\d", ":"), True, "Строка"
+                return command[1:-1].replace("\\n", "\n").replace("\\c", ";").replace("\\z", ",").replace("\\k", ":"), True, "Строка"
             else:
                 try:
                     if not "=" in command:
@@ -397,7 +484,7 @@ def itp(command: str):
                                 return command == 'True', True, "bool"
                         else:
                             new = []
-                            for element in command[1:-1].split(","):
+                            for element in command[1:-1].split(", "):
                                 new.append(itp(element[1:-1] if element[0] == "[" and element[-1] == "]" else element)[0]) if not itp(element)[0] is None else ''
                             else:
                                 return new, True, "Список"
