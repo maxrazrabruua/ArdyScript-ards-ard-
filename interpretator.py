@@ -473,7 +473,7 @@ def itp(command: str):
             int(float(command))
         except:
             if command[0] == '"' and command[-1] == '"':
-                return command[1:-1].replace("\\n", "\n").replace("\\c", ";").replace("\\z", ",").replace("\\k", ":"), True, "Строка"
+                return command[1:-1].replace("\\n", "\n").replace("\\c", ";").replace("\\z", ",").replace("\\k", ":").replace("\\a", "^"), True, "Строка"
             else:
                 try:
                     if not "=" in command:
