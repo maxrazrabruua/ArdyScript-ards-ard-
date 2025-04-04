@@ -152,9 +152,9 @@ def itp(command: str):
             return repr(getting), True, "else repr"
     elif com[0] == "stop":
         try:
-            return time.sleep(command[5:]), True, "stopped"
+            return time.sleep(itp(command[5:])[0]), True, "stopped"
         except:
-            return None, False, "TypeError: arg should be INT"
+            return None, False, "TypeError: arg should be FLOAT"
     elif com[0] == "range":
         try:
             return list(range(itp(command[6:])[0])), True, "range"
