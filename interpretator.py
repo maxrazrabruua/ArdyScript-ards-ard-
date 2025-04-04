@@ -165,16 +165,27 @@ def itp(command: str):
             itp("local.create \"for\"")
             itp("local.import \"for\"")
             itp("local.set \"for\"")
-            for i in range(len(start[0])):
+            try:
+                ram["cash"] = {}
+            except Exception as e:
+                print(f"{e.__class__.__name__}: {str(e)}")
+            ram["cash"]["LEN"] = len(start[0])
+            for i in range(ram["cash"]["LEN"]):
                 if not (keyboard.is_pressed("end") or keyboard.is_pressed("esc")):
-                    t = {}
-                    for x in range(len(start[0])):
-                        for n in new:
-                            if n not in t.keys():
-                                t[n] = [start[new.index(n)][x]]
-                            else:
-                                t[n].append(start[new.index(n)][x])
-                    for k, v in t.items():
+                    if "T" not in ram["cash"].keys():
+                        ram["cash"]["T"] = {}
+                        for x in range(ram["cash"]["LEN"]):
+                            for n in new:
+                                if n in ram["cash"].keys():
+                                    getindex = ram["cash"][n]
+                                else:
+                                    getindex = new.index(n)
+                                    ram["cash"][n] = getindex
+                                if n not in ram["cash"]["T"].keys():
+                                    ram["cash"]["T"][n] = [start[getindex][x]]
+                                else:
+                                    ram["cash"]["T"][n].append(start[getindex][x])
+                    for k, v in ram["cash"]["T"].items():
                         itp(f"{k} = {v[i]}")
                     else:
                         itp(itp(args[2])[0])
@@ -184,8 +195,10 @@ def itp(command: str):
                 itp("local.delOblast \"for\"")
                 ram["GLOBAL"]["last"] = "\n"
                 print('\n')
+                ram["cash"].clear()
             return True, True, "for"
-        except:
+        except Exception as e:
+            print(f"{e.__class__.__name__}: {str(e)}")
             return False, False, "SyntaxError: maybe len args <"
     elif com[0] == "while":
         try:
@@ -219,6 +232,11 @@ def itp(command: str):
             return True, True, "ifing"
         except:
             return False, False, "SyntaxError: maybe len args <"
+    elif com[0] == "reverse":
+        try:
+            return itp(command[8:])[0][::-1], True, "Вывод перевёрного списка или перевёрнотой строки"
+        except:
+            return [], False, "TypeError: ANY not supported 'reverse' maybe STR or LIST?"
     elif com[0] == "split":
         try:
             args = command[6:].split(", ")
