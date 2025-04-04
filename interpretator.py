@@ -1,5 +1,6 @@
 import os
 import keyboard
+import time
 
 ram = {
     "GLOBAL": {
@@ -149,6 +150,11 @@ def itp(command: str):
                 return new, True, "repr"
         else:
             return repr(getting), True, "else repr"
+    elif com[0] == "stop":
+        try:
+            return time.sleep(command[5:]), True, "stopped"
+        except:
+            return None, False, "TypeError: arg should be INT"
     elif com[0] == "range":
         try:
             return list(range(itp(command[6:])[0])), True, "range"
@@ -500,6 +506,51 @@ def itp(command: str):
             else:
                 return int(command), True, "Не дробь"
 
-while True:
-    result, a, b = itp(input(">>> "))
-    print("<<<", result)
+def terminal():
+    global ram
+    ram = {
+        "GLOBAL": {
+            "local.nowOblast": "GLOBAL",
+            "itp": "<component: itp>",
+            "local": "<class: Local>",
+            "raise": "<module: raise>",
+            "console": "<class: Console>",
+            "logCalls": [], # Прописка логов
+            "timesCall": 0,
+            "types": "<module: types>",
+            "last": "\n"
+        }
+    }
+    while True:
+        result, a, b = itp(input(">>> "))
+        print("<<<", result)
+
+def run(code: str, finishMessage: bool = True):
+    global ram
+    ram = {
+        "GLOBAL": {
+            "local.nowOblast": "GLOBAL",
+            "itp": "<component: itp>",
+            "local": "<class: Local>",
+            "raise": "<module: raise>",
+            "console": "<class: Console>",
+            "logCalls": [], # Прописка логов
+            "timesCall": 0,
+            "types": "<module: types>",
+            "last": "\n"
+        }
+    }
+    i = 0
+    for command in code.split("\n"):
+        i += 1
+        _, a, b = itp(command)
+        if not a:
+            print(f"error in file of {i} line:\n")
+            print(f"  -> {command}:")
+            print(f"  << {b}")
+            break
+    else:
+        if finishMessage:
+            print("\n[Programm finished]\n")
+            print("logs:")
+            print("\n".join(ram["GLOBAL"]["logCalls"]))
