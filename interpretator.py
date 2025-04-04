@@ -195,7 +195,7 @@ def itp(command: str):
                                 else:
                                     ram["cash"]["T"][n].append(start[getindex][x])
                     for k, v in ram["cash"]["T"].items():
-                        itp(f"{k} = {v[i]}")
+                        itp(f"{k} = {v[i] if not isinstance(v[i], str) else '"' + v[i] + '"'}")
                     else:
                         itp(itp(args[2])[0])
                 else:
