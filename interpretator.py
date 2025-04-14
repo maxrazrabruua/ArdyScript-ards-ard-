@@ -2,37 +2,17 @@ import os
 import keyboard
 import time
 
-class Module:
-    """Модуль"""
-    def __init__(self, name: str, oblast: dict):
-        self.name = name
-        self.oblast = oblast
-    
-    def __getitem__(self, key: str):
-        return self.oblast[key]
-    
-    def __setitem__(self, key: str, value: object):
-        self.oblast[key] = value
-    
-    def __repr__(self):
-        return str(f"<Module: {self.name}>")
-    
-    def __str__(self):
-        return "<class: Module>"
-
 ram = {
     "GLOBAL": {
         "local.nowOblast": "GLOBAL",
         "itp": "<component: itp>",
-        "local": "<class: local>",
+        "local": "<class: Local>",
         "raise": "<module: raise>",
-        "console": "<class: console>",
+        "console": "<class: Console>",
         "logCalls": [], # Прописка логов
         "timesCall": 0,
         "types": "<module: types>",
-        "last": "\n",
-        "cash": {},
-        "module": "<class: module>"
+        "last": "\n"
     }
 }
 
@@ -66,53 +46,6 @@ def itp(command: str):
         return None, True, "Комментарий"
     elif com[0] == "echo":
         return print(itp(command[5:])[0], end=ram["GLOBAL"]["last"]), True, "Вывод"
-    elif com[0] == "module.import":
-        try:
-            nameModule = itp(command[14:])[0]
-            try:
-                with open(f"{nameModule}.ards", "r", encoding="utf-8") as file:
-                    content = file.read()
-            except:
-                try:
-                    with open(f"{nameModule}.ard", "r", encoding="utf-8") as file:
-                        content = file.read()
-                except:
-                    return None, False, f"ModuleError: '{nameModule}' not found"
-
-            oblast = run(content, file=nameModule)
-            ram[nameModule] = oblast
-            return None, True, "Импорт модуля"
-        except:
-            return None, False, "TypeError: name of module should be STR"
-    elif com[0] == "module.zip":
-        try:
-            nameModule = itp(command[11:])[0]
-            try:
-                with open(f"{nameModule}.ards", "r", encoding="utf-8") as file:
-                    content = file.read()
-            except:
-                try:
-                    with open(f"{nameModule}.ard", "r", encoding="utf-8") as file:
-                        content = file.read()
-                except:
-                    return None, False, f"ModuleError: '{nameModule}' not found"
-            oblast = run(content, file=nameModule)
-            return Module(nameModule, oblast), True, "Зиппинг модуля"
-        except:
-            return None, False, "TypeError: name of module should be STR"
-    elif com[0] == "module.name":
-        obj = itp(command[12:])[0]
-        if isinstance(obj, Module):
-            return obj.name, True, "Имя модуля"
-        else:
-            return "", False, "TypeError: command 'module.name' not supported for not MODULES"
-    elif com[0] == "module.extract":
-        obj = itp(command[15:])[0]
-        if isinstance(obj, Module):
-            ram[obj.name] = obj.oblast
-            return None, True, "Распаковочка"
-        else:
-            return None, False, "TypeError: command 'module.extract' not supported for not MODULES"
     elif com[0] == "local.delOblast":
         oblast = itp(command[len("local.delOblast") + 1:])[0]
         if oblast != "GLOBAL":
@@ -156,7 +89,7 @@ def itp(command: str):
             ram[itp(com[1])[0]][itp(com[2])[0]] = ram[ram["GLOBAL"]["local.nowOblast"]][itp(com[2])[0]]
             return None, True, "Импорт в другую область переменных"
         elif not itp(com[2])[0] in ram[ram["GLOBAL"]["local.nowOblast"]].keys():
-            return None, False, f"NameError: '{itp(com[2])[0]}' is not diclared in {ram['GLOBAL']['local.nowOblast']} oblast vars"
+            return None, False, f"NameError: '{command}' is not diclared in {ram['GLOBAL']['local.nowOblast']} oblast vars"
         else:
             return None, False, f"OblastError: Oblast vars '{itp(com[1])[0]}' is not exists"
     elif com[0] == "raise.debug":
@@ -351,15 +284,7 @@ def itp(command: str):
                 except:
                     return None, False, f"IndexError: '{str(index)}' not in iterable-element"
             else:
-                return None, False, "TypeError: index-iteralbe not dict(and module) should be INT and not ANY(not INT)"
-        elif isinstance(central, Module):
-            if isinstance(index, str):
-                try:
-                    return central[index], True, "Индексирование модуля"
-                except:
-                    return None, False, f"VarError: '{index}' not in module"
-            else:
-                return None, False, f"TypeError: index-module should be STR and not ANY(not STR)"
+                return None, False, "TypeError: index-iteralbe not dict should be INT and not ANY(not INT)"
         else:
             return None, False, "TypeError: ANY should be iterable and not literable"
     elif com[0] == "set":
@@ -381,12 +306,6 @@ def itp(command: str):
                     return None, False, f"IndexError: '{str(index)}' not in iterable-element"
             else:
                 return None, False, "TypeError: index-iteralbe not dict should be INT and not ANY(not INT)"
-        elif isinstance(central, Module):
-            if isinstance(index, str):
-                central[index] = value
-                return central, True, "Индексирование модуля"
-            else:
-                return None, False, f"TypeError: index-module should be STR and not ANY(not STR)"
         else:
             return None, False, "TypeError: ANY should be iterable and not literable"
     elif com[0] == "append":
@@ -593,9 +512,9 @@ def terminal():
         "GLOBAL": {
             "local.nowOblast": "GLOBAL",
             "itp": "<component: itp>",
-            "local": "<class: local>",
+            "local": "<class: Local>",
             "raise": "<module: raise>",
-            "console": "<class: console>",
+            "console": "<class: Console>",
             "logCalls": [], # Прописка логов
             "timesCall": 0,
             "types": "<module: types>",
@@ -606,21 +525,19 @@ def terminal():
         result, a, b = itp(input(">>> "))
         print("<<<", result)
 
-def run(code: str, finishMessage: bool = False, file: str = "MAIN"):
+def run(code: str, finishMessage: bool = True):
     global ram
     ram = {
         "GLOBAL": {
             "local.nowOblast": "GLOBAL",
             "itp": "<component: itp>",
-            "local": "<class: local>",
+            "local": "<class: Local>",
             "raise": "<module: raise>",
-            "console": "<class: console>",
+            "console": "<class: Console>",
             "logCalls": [], # Прописка логов
             "timesCall": 0,
             "types": "<module: types>",
-            "last": "\n",
-            "cash": {},
-            "module": "<class: module>"
+            "last": "\n"
         }
     }
     i = 0
@@ -628,7 +545,7 @@ def run(code: str, finishMessage: bool = False, file: str = "MAIN"):
         i += 1
         _, a, b = itp(command)
         if not a:
-            print(f"error in file '{file}' of {i} line:\n")
+            print(f"error in file of {i} line:\n")
             print(f"  -> {command}:")
             print(f"  << {b}")
             break
@@ -637,4 +554,3 @@ def run(code: str, finishMessage: bool = False, file: str = "MAIN"):
             print("\n[Programm finished]\n")
             print("logs:")
             print("\n".join(ram["GLOBAL"]["logCalls"]))
-    return ram["GLOBAL"]
