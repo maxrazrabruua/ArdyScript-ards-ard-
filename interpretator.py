@@ -263,6 +263,13 @@ def itp(command: str):
     elif com[0] == "itp.exec":
         itp(itp(command[9:])[0])
         return None, True, "Выполнение"
+    elif com[0] == "itp.localscript":
+        args = command[16:].split(": ")
+        iserror, error = run(itp(args[0])[0], False, itp(args[1])[0])
+        if iserror:
+            return None, True, "Запуск локального скрипта"
+        else:
+            return None, False, f"Ошибка в локальном скрипте: {error}"
     elif com[0] == "itp.eval":
         return itp(itp(command[9:])[0])[0], True, "Вывод"
     elif com[0] == "console.clear":
@@ -690,10 +697,24 @@ def terminal():
         result, a, b = itp(input(">>> "))
         print("<<<", result)
 
-def run(code: str, finishMessage: bool = True):
+def run(code: str, finishMessage: bool = True, localscript: str = "GLOBAL"):
     global ram
-    ram = {
-        "GLOBAL": {
+    if localscript == "GLOBAL":
+        ram = {
+            "GLOBAL": {
+                "local.nowOblast": "GLOBAL",
+                "itp": "<component: itp>",
+                "local": "<class: Local>",
+                "raise": "<module: raise>",
+                "console": "<class: Console>",
+                "logCalls": [], # Прописка логов
+                "timesCall": 0,
+                "types": "<module: types>",
+                "last": "\n"
+            }
+        }
+    else:
+        ram[localscript] = {
             "local.nowOblast": "GLOBAL",
             "itp": "<component: itp>",
             "local": "<class: Local>",
@@ -704,8 +725,9 @@ def run(code: str, finishMessage: bool = True):
             "types": "<module: types>",
             "last": "\n"
         }
-    }
+        ram["GLOBAL"]["local.nowOblast"] = localscript
     i = 0
+    kortezh = (True, "normal")
     for command in code.split("\n"):
         i += 1
         _, a, b = itp(command)
@@ -713,8 +735,12 @@ def run(code: str, finishMessage: bool = True):
             print(f"error in file of {i} line:\n")
             print(f"  -> {command}:")
             print(f"  << {b}")
+            kortezh = (False, b)
             break
     if finishMessage:
         print("\n[Programm finished]\n")
         print("logs:")
         print("\n".join(ram["GLOBAL"]["logCalls"]))
+
+    ram["GLOBAL"]["local.nowOblast"] = "GLOBAL"
+    return kortezh
