@@ -19,7 +19,8 @@ ram = {
         "timesCall": 0,
         "types": "<module: types>",
         "last": "\n",
-        "disk": "<module: disk>"
+        "disk": "<module: disk>",
+        "key": "<module: keyboard>"
     }
 }
 
@@ -53,6 +54,12 @@ def itp(command: str):
         return None, True, "Комментарий"
     elif com[0] == "echo":
         return print(itp(command[5:])[0], end=ram["GLOBAL"]["last"]), True, "Вывод"
+    elif com[0] == "key.is_passed":
+        result = itp(command[14:])[0]
+        try:
+            return keyboard.is_pressed(result), True, "Сканировка"
+        except:
+            return False, False, "Либо клавишы такой не существует либо значение - не строка"
     elif com[0] == "disk.simulator.create":
         result = itp(command[22:])[0]
         if not os.path.exists(f"disks/{result}"):
