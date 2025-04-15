@@ -1,6 +1,12 @@
 import os
 import keyboard
 import time
+import pygame
+import shutil as sh
+
+pygame.mixer.init()
+sd = pygame.mixer.Sound("sum_disk.mp3")
+os.system("cls")
 
 ram = {
     "GLOBAL": {
@@ -12,7 +18,8 @@ ram = {
         "logCalls": [], # Прописка логов
         "timesCall": 0,
         "types": "<module: types>",
-        "last": "\n"
+        "last": "\n",
+        "disk": "<module: disk>"
     }
 }
 
@@ -46,6 +53,139 @@ def itp(command: str):
         return None, True, "Комментарий"
     elif com[0] == "echo":
         return print(itp(command[5:])[0], end=ram["GLOBAL"]["last"]), True, "Вывод"
+    elif com[0] == "disk.simulator.create":
+        result = itp(command[22:])[0]
+        if not os.path.exists(f"disks/{result}"):
+            sd.play()
+            time.sleep(0.1)
+            os.mkdir(f"disks/{result}")
+            return None, True, "Создание нового диска"
+        else:
+            return None, False, "Диск такой уже существует"
+    elif com[0] == "disk.simulator.delete":
+        result = itp(command[22:])[0]
+        if os.path.exists(f"disks/{result}"):
+            sd.play()
+            time.sleep(0.1)
+            sh.rmtree(f"disks/{result}")
+            return None, True, "Удаление диска"
+        else:
+            return None, False, "Диска нет"
+    elif com[0] == "disk.simulator.sectore.read":
+        args = command[28:].split(", ")
+        disk = itp(args[0])[0]
+        sectore = itp(args[1])[0]
+        if isinstance(sectore, int):
+            if os.path.exists(f"disks/{disk}"):
+                if os.path.exists(f"disks/{disk}/{sectore}.sectore"):
+                    sd.play()
+                    time.sleep(0.01)
+                    with open(f"disks/{disk}/{sectore}.sectore", "r") as file:
+                        content = file.read()
+                    info, data = content[:2], content[2:]
+                    time.sleep(0.1/512*len(data))
+                    if info == "0\n":
+                        if len(data) <= 512:
+                            return data, True, "standart"
+                        else:
+                            return "", False, "Длина стандартного сектора не должна быть более 512 байт"
+                    elif info == "1\n":
+                        if len(data) <= 4096:
+                            return data, True, "кластер"
+                        else:
+                            return "", False, "Длина кларстерного сектора не должна быть более 4 кб"
+                    else:
+                        return "", False, "Не поддерживаемый тип"
+                else:
+                    return None, False, f"Сектор: {sectore} на диске не существует!"
+            else:
+                return None, False, "Диска нет"
+        else:
+            return None, False, "Имя сектора должно быть числовым!"
+    elif com[0] == "disk.simulator.sectore.type":
+        args = command[28:].split(", ")
+        disk = itp(args[0])[0]
+        sectore = itp(args[1])[0]
+        if isinstance(sectore, int):
+            if os.path.exists(f"disks/{disk}"):
+                if os.path.exists(f"disks/{disk}/{sectore}.sectore"):
+                    sd.play()
+                    time.sleep(0.01)
+                    with open(f"disks/{disk}/{sectore}.sectore", "r") as file:
+                        content = file.read()
+                    info = content[0]
+                    return int(info), True, "Возврат типа сектора"
+                else:
+                    return None, False, f"Сектор: {sectore} на диске не существует!"
+            else:
+                return None, False, "Диска нет"
+        else:
+            return None, False, "Имя сектора должно быть числовым!"
+    elif com[0] == "disk.simulator.sectore.remove":
+        args = command[28:].split(", ")
+        disk = itp(args[0])[0]
+        sectore = itp(args[1])[0]
+        if isinstance(sectore, int):
+            if os.path.exists(f"disks/{disk}"):
+                if os.path.exists(f"disks/{disk}/{sectore}.sectore"):
+                    sd.play()
+                    time.sleep(0.01)
+                    os.remove(f"disks/{disk}/{sectore}.sectore")
+                    return None, True, "Сектор удалён"
+                else:
+                    return None, False, f"Сектор: {sectore} на диске не существует!"
+            else:
+                return None, False, "Диска нет"
+        else:
+            return None, False, "Имя сектора должно быть числовым!"
+    elif com[0] == "disk.simulator.sectore.create":
+        args = command[30:].split(", ")
+        disk = itp(args[0])[0]
+        sectore = itp(args[1])[0]
+        typeSector = itp(args[2])[0]
+        if not typeSector in [0, 1]: return None, False, "Типы секторов не поддержуются\nНадо либо 0 - стандарт(512 байт) или кластерный(4096 байт)"
+        if isinstance(sectore, int):
+            if os.path.exists(f"disks/{disk}"):
+                if not os.path.exists(f"disks/{disk}/{sectore}.sectore"):
+                    with open(f"disks/{disk}/{sectore}.sectore", "w") as file:
+                        file.write(str(typeSector) + "\n")
+                    return None, True, "Сектор создан"
+                else:
+                    return None, False, f"Сектор: {sectore} на диске существует!"
+            else:
+                return None, False, "Диска нет"
+        else:
+            return None, False, "Имя сектора должно быть числовым!"
+    elif com[0] == "disk.simulator.sectore.write":
+        args = command[29:].split(", ")
+        disk = itp(args[0])[0]
+        sectore = itp(args[1])[0]
+        data = itp(args[2])[0]
+        if isinstance(sectore, int):
+            if os.path.exists(f"disks/{disk}"):
+                if os.path.exists(f"disks/{disk}/{sectore}.sectore"):
+                    typeSector = itp(f'disk.simulator.sectore.type "{disk}", {str(sectore)}')[0]
+                    with open(f"disks/{disk}/{sectore}.sectore", "w", encoding="utf-8") as file:
+                        tablic = {
+                            0: 512,
+                            1: 4096
+                        }
+                        try:
+                            if tablic[typeSector] >= len(data):
+                                time.sleep(0.1/512*len(data)*2)
+                                file.write(f"{typeSector}\n{data}")
+                                return None, True, "Запись сектора"
+                            else:
+                                return None, False, "Данная длина не поддержуется для данного типа"
+                        except:
+                            return None, False, "Данный тип секторов не поддержуется"
+                    return None, True, "Сектор создан"
+                else:
+                    return None, False, f"Сектор: {sectore} на диске не существует!"
+            else:
+                return None, False, "Диска нет"
+        else:
+            return None, False, "Имя сектора должно быть числовым!"
     elif com[0] == "local.delOblast":
         oblast = itp(command[len("local.delOblast") + 1:])[0]
         if oblast != "GLOBAL":
@@ -96,6 +236,18 @@ def itp(command: str):
         try:
             result = itp(itp(command[(len("raise.debug") + 1):])[0])[2]
             return result, True, "Дебаг"
+        except:
+            return "FormatError: problem of format", True, "Дебаг"
+    elif com[0] == "raise.iterror":
+        try:
+            result = not itp(itp(command[(len("raise.iterror") + 1):])[0])[1]
+            return result, True, "Дебаг"
+        except:
+            return "FormatError: problem of format", True, "Дебаг"
+    elif com[0] == "raise.pass":
+        try:
+            itp(itp(command[(len("raise.pass") + 1):])[0])
+            return None, True, "Дебаг"
         except:
             return "FormatError: problem of format", True, "Дебаг"
     elif com[0] == "itp.ram":
@@ -152,9 +304,15 @@ def itp(command: str):
             return repr(getting), True, "else repr"
     elif com[0] == "stop":
         try:
-            return time.sleep(itp(command[5:])[0]), True, "stopped"
+            result = itp(command[5:])[0]
+            if not result in [True, False]:
+                return time.sleep(result), True, "stopped"
+            else:
+                while result:
+                    pass
+                return None, True, "stopped"
         except:
-            return None, False, "TypeError: arg should be FLOAT"
+            return None, False, "TypeError: arg should be FLOAT or BOOL"
     elif com[0] == "range":
         try:
             return list(range(itp(command[6:])[0])), True, "range"
@@ -479,7 +637,7 @@ def itp(command: str):
             int(float(command))
         except:
             if command[0] == '"' and command[-1] == '"':
-                return command[1:-1].replace("\\n", "\n").replace("\\c", ";").replace("\\z", ",").replace("\\k", ":").replace("\\a", "^"), True, "Строка"
+                return command[1:-1].replace("\\n", "\n").replace("\\c", ";").replace("\\z", ",").replace("\\k", ":").replace("\\a", "^").replace("$a", "\\k").replace("\\s", " "), True, "Строка"
             else:
                 try:
                     if not "=" in command:
@@ -549,8 +707,7 @@ def run(code: str, finishMessage: bool = True):
             print(f"  -> {command}:")
             print(f"  << {b}")
             break
-    else:
-        if finishMessage:
-            print("\n[Programm finished]\n")
-            print("logs:")
-            print("\n".join(ram["GLOBAL"]["logCalls"]))
+    if finishMessage:
+        print("\n[Programm finished]\n")
+        print("logs:")
+        print("\n".join(ram["GLOBAL"]["logCalls"]))
