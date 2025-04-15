@@ -122,7 +122,7 @@ def itp(command: str):
         else:
             return None, False, "Имя сектора должно быть числовым!"
     elif com[0] == "disk.simulator.sectore.remove":
-        args = command[28:].split(", ")
+        args = command[30:].split(", ")
         disk = itp(args[0])[0]
         sectore = itp(args[1])[0]
         if isinstance(sectore, int):
