@@ -8,6 +8,43 @@ pygame.mixer.init()
 sd = pygame.mixer.Sound("sum_disk.mp3")
 os.system("cls")
 
+class Queue:
+    def __init__(self, l: list):
+        self.l = l
+        self.t = 0
+    
+    def __call__(self) -> object:
+        if self.l == []:
+            return None
+        elif len(self.l) == 1:
+            return self.l[0]
+        else:
+            if len(self.l) != self.t + 1:
+                result = self.l[self.t]
+                self.t += 1
+                return result
+            else:
+                self.t = 0
+                return self.l[len(self.l) - 1]
+    
+    def append(self, obj: object):
+        self.l.append(obj)
+    
+    def remove(self, obj: object):
+        self.l.remove(obj)
+    
+    def setitem(self, index: int, obj: object):
+        self.l[index] = obj
+    
+    def getitem(self, index: int) -> object:
+        return self.l[index]
+    
+    def __len__(self):
+        return len(self.l)
+    
+    def __contains__(self, obj: object):
+        return obj in self.l
+
 ram = {
     "GLOBAL": {
         "local.nowOblast": "GLOBAL",
@@ -20,18 +57,22 @@ ram = {
         "types": "<module: types>",
         "last": "\n",
         "disk": "<module: disk>",
-        "key": "<module: keyboard>"
+        "key": "<module: keyboard>",
+        "wait": 0.0,
+        "notsecret": False
     }
 }
 
 def itp(command: str):
     """Интерпретатор"""
     global ram
+    time.sleep(ram["GLOBAL"]["wait"])
     if command == "":
         return None, True, "Нету ничего"
     else:
         ram["GLOBAL"]["timesCall"] += 1
         ram["GLOBAL"]["logCalls"].append(f"now oblast vars '{ram['GLOBAL']['local.nowOblast']}': call itp of {ram['GLOBAL']['timesCall']}times of command '{command}'")
+        print(f"now oblast vars '{ram['GLOBAL']['local.nowOblast']}': call itp of {ram['GLOBAL']['timesCall']}times of command '{command}'", end="\r") if ram["GLOBAL"]["notsecret"] is True else ''
         if ";" in command:
             strings = command.split(";")
             i = 0
@@ -52,14 +93,52 @@ def itp(command: str):
     
     if com[0] == "//":
         return None, True, "Комментарий"
+    elif com[0] == "itp.notsecret":
+        r = command[14:]
+        if r == "True":
+            ram["GLOBAL"]["notsecret"] = True
+        elif r == "False":
+            ram["GLOBAL"]["notsecret"] = False
+        else:
+            return None, False, "Неверное значение"
+        return None, True, "Открытый показ действий"
     elif com[0] == "echo":
         return print(itp(command[5:])[0], end=ram["GLOBAL"]["last"]), True, "Вывод"
+    elif com[0] == "types.is":
+        tablic = {
+            "STR": str,
+            "INT": int,
+            "FLOAT": float,
+            "LIST": list,
+            "NONE": None,
+            "BOOL": bool,
+            "DICT": dict
+        }
+        args = command[9:].split(": ")
+        value = itp(args[0])[0]
+        ty = itp(args[1])[0]
+        if isinstance(ty, str):
+            if ty in tablic.keys():
+                if not value is None:
+                    return isinstance(value, tablic[ty]), True, "Типинг"
+                else:
+                    return ty == "NONE", True, "Нонинг"
+            else:
+                return False, False, "Данный тип не поддерживается(совет, пишите большими буквами типы)"
+        else:
+            return False, False, "Тип должен быть строкой"
     elif com[0] == "key.is_passed":
         result = itp(command[14:])[0]
         try:
             return keyboard.is_pressed(result), True, "Сканировка"
         except:
             return False, False, "Либо клавишы такой не существует либо значение - не строка"
+    elif com[0] == "key.input":
+        result = itp(command[10:])[0]
+        try:
+            return input("\n" + result), True, "Инпут"
+        except:
+            return "", False, "Либо неверное значение было написано либо значение не строка"
     elif com[0] == "disk.simulator.create":
         result = itp(command[22:])[0]
         if not os.path.exists(f"disks/{result}"):
@@ -87,7 +166,7 @@ def itp(command: str):
                 if os.path.exists(f"disks/{disk}/{sectore}.sectore"):
                     sd.play()
                     time.sleep(0.01)
-                    with open(f"disks/{disk}/{sectore}.sectore", "r") as file:
+                    with open(f"disks/{disk}/{sectore}.sectore", "r", encoding="utf-8") as file:
                         content = file.read()
                     info, data = content[:2], content[2:]
                     time.sleep(0.1/512*len(data))
@@ -156,6 +235,7 @@ def itp(command: str):
                 if not os.path.exists(f"disks/{disk}/{sectore}.sectore"):
                     with open(f"disks/{disk}/{sectore}.sectore", "w") as file:
                         file.write(str(typeSector) + "\n")
+                    sd.play()
                     return None, True, "Сектор создан"
                 else:
                     return None, False, f"Сектор: {sectore} на диске существует!"
@@ -173,6 +253,7 @@ def itp(command: str):
                 if os.path.exists(f"disks/{disk}/{sectore}.sectore"):
                     typeSector = itp(f'disk.simulator.sectore.type "{disk}", {str(sectore)}')[0]
                     with open(f"disks/{disk}/{sectore}.sectore", "w", encoding="utf-8") as file:
+                        sd.play()
                         tablic = {
                             0: 512,
                             1: 4096
@@ -245,9 +326,9 @@ def itp(command: str):
             return result, True, "Дебаг"
         except:
             return "FormatError: problem of format", True, "Дебаг"
-    elif com[0] == "raise.iterror":
+    elif com[0] == "raise.iserror":
         try:
-            result = not itp(itp(command[(len("raise.iterror") + 1):])[0])[1]
+            result = not itp(itp(command[(len("raise.iserror") + 1):])[0])[1]
             return result, True, "Дебаг"
         except:
             return "FormatError: problem of format", True, "Дебаг"
@@ -257,6 +338,13 @@ def itp(command: str):
             return None, True, "Дебаг"
         except:
             return "FormatError: problem of format", True, "Дебаг"
+    elif com[0] == "itp.wait":
+        result = itp(command[9:])[0]
+        if isinstance(result, float):
+            ram["GLOBAL"]["wait"] = result
+            return None, True, "Изменение ожидания"
+        else:
+            return None, False, "Неподдерживаемый тип данных"
     elif com[0] == "itp.ram":
         print(ram)
         return None, True, "Вывод памяти"
@@ -281,11 +369,15 @@ def itp(command: str):
     elif com[0] == "console.start":
         ram["GLOBAL"]["last"] = "\r"
         return None, True, "start"
+    elif com[0] == "console.normal":
+        ram["GLOBAL"]["last"] = "\n"
+        return None, True, "normal"
     elif com[0] == "types.str":
-        return str(itp(command[10:]))[0], True, "Тайпинг стринг"
+        return str(itp(command[10:])[0]), True, "Тайпинг стринг"
     elif com[0] == "types.int":
         try:
-            return (int(float(itp(command[10:])[0])) if command[10:] not in ['False', 'True'] else ['False', 'True'].index(command[10:])) if not isinstance(itp(command[10:])[0], bool) else int(itp(command[10:])[0]), True, "Тайпинг инт"
+            r = itp(command[10:])[0]
+            return (int(float(r)) if command[10:] not in ['False', 'True'] else ['False', 'True'].index(command[10:])) if not isinstance(r, bool) else int(r), True, "Тайпинг инт"
         except:
             return None, False, "ValueError: typing-operation ANY in INT is not working"
     elif com[0] == "types.float":
@@ -316,6 +408,16 @@ def itp(command: str):
                 return new, True, "repr"
         else:
             return repr(getting), True, "else repr"
+    elif com[0] == "types.queue":
+        try:
+            return Queue(itp(command[12:])[0]), True, "Тайпинг куе"
+        except:
+            return None, False, "ValueError: typing-operation ANY in QUEUE is not working"
+    elif com[0] == "types.class":
+        try:
+            return ram[ram["GLOBAL"]["local.nowOblast"]][command[12:]], True, "Объект"
+        except:
+            return None, False, "Переменная такая не поддерживается"
     elif com[0] == "stop":
         try:
             result = itp(command[5:])[0]
@@ -385,7 +487,7 @@ def itp(command: str):
         try:
             while True:
                 if not (keyboard.is_pressed("end") or keyboard.is_pressed("esc")):
-                    args = command[6:].split(", ")
+                    args = command[6:].split(": ")
                     cod = itp(args[0])[0]
                     true = itp(args[1])[0]
                     if cod:
@@ -399,7 +501,7 @@ def itp(command: str):
             return False, False, "SyntaxError: maybe len args <"
     elif com[0] == "if":
         try:
-            args = command[3:].split(", ")
+            args = command[3:].split(": ")
             cod = itp(args[0])[0]
             true = itp(args[1])[0]
             try:
@@ -407,11 +509,18 @@ def itp(command: str):
             except:
                 false = ""
             if cod:
-                itp(true)
+                if not true is None:
+                    itp(true)
+                else:
+                    return False, False, "CodeError: Перепроверьте код на ошибки!"
             else:
-                itp(false)
+                if not false is None:
+                    itp(false)
+                else:
+                    return False, False, "CodeError: Перепроверьте код на ошибки!"
             return True, True, "ifing"
-        except:
+        except Exception as e:
+            print(f"{e.__class__.__name__}: {str(e)}")
             return False, False, "SyntaxError: maybe len args <"
     elif com[0] == "reverse":
         try:
@@ -449,7 +558,7 @@ def itp(command: str):
                 return central[index], True, "Индексирование словаря"
             except:
                 return None, False, f"KeyError: '{index}' not in dict"
-        elif isinstance(central, (str, list)):
+        elif isinstance(central, (str, list, Queue)):
             if isinstance(index, int):
                 try:
                     return central[index], True, "Индексирование несловарного элемента"
@@ -488,8 +597,11 @@ def itp(command: str):
         appending = itp(args[1])[0]
         if isinstance(central, list):
             return central + [appending], True, "append"
+        elif isinstance(central, Queue):
+            central.append(appending)
+            return central, True, "append"
         else:
-            return [], False, "TypeError: parent is not LIST, should be LIST"
+            return [], False, "TypeError: parent is not LIST or QUEUE, should be LIST or QUEUE"
     elif com[0] == "remove":
         args = command[7:].split(": ")
         if len(args) < 2:
@@ -497,6 +609,12 @@ def itp(command: str):
         central = itp(args[0])[0]
         removing = itp(args[1])[0]
         if isinstance(central, list):
+            try:
+                central.remove(removing)
+                return central, True, "remove"
+            except:
+                return central, True, "remove"
+        elif isinstance(central, Queue):
             try:
                 central.remove(removing)
                 return central, True, "remove"
@@ -651,13 +769,16 @@ def itp(command: str):
             int(float(command))
         except:
             if command[0] == '"' and command[-1] == '"':
-                return command[1:-1].replace("\\n", "\n").replace("\\c", ";").replace("\\z", ",").replace("\\k", ":").replace("\\a", "^").replace("$a", "\\k").replace("\\s", " "), True, "Строка"
+                return command[1:-1].replace("\\n", "\n").replace("\\c", ";").replace("\\z", ",").replace("\\k", ":").replace("\\a", "^").replace("\\m", "-").replace("\\w", "=").replace("\\s", " ").replace("\\x", "\\"), True, "Строка"
             else:
                 try:
                     if not "=" in command:
                         if not command[0] == "[" and not command[:-1] == "]":
                             if command not in ["False", "True"]:
-                                return ram[ram["GLOBAL"]["local.nowOblast"]][command], True, "Переменная"
+                                if not isinstance(ram[ram["GLOBAL"]["local.nowOblast"]][command], Queue):
+                                    return ram[ram["GLOBAL"]["local.nowOblast"]][command], True, "Переменная"
+                                else:
+                                    return ram[ram["GLOBAL"]["local.nowOblast"]][command](), True, "Очередь"
                             else:
                                 return command == 'True', True, "bool"
                         else:
@@ -668,8 +789,9 @@ def itp(command: str):
                                 return new, True, "Список"
                     else:
                         kv = command.split("=")
-                        ram[ram["GLOBAL"]["local.nowOblast"]][kv[0].strip()] = itp(kv[1].lstrip())[0]
-                        return None, True, "Объявление переменной"
+                        value = itp(kv[1].lstrip())[0]
+                        ram[ram["GLOBAL"]["local.nowOblast"]][kv[0].strip()] = value
+                        return value, True, "Объявление переменной"
                 except KeyError:
                     return None, False, f"NameError: '{command}' is not diclared in {ram['GLOBAL']['local.nowOblast']} oblast vars"
         else:
@@ -680,51 +802,14 @@ def itp(command: str):
 
 def terminal():
     global ram
-    ram = {
-        "GLOBAL": {
-            "local.nowOblast": "GLOBAL",
-            "itp": "<component: itp>",
-            "local": "<class: Local>",
-            "raise": "<module: raise>",
-            "console": "<class: Console>",
-            "logCalls": [], # Прописка логов
-            "timesCall": 0,
-            "types": "<module: types>",
-            "last": "\n"
-        }
-    }
     while True:
         result, a, b = itp(input(">>> "))
         print("<<<", result)
 
 def run(code: str, finishMessage: bool = True, localscript: str = "GLOBAL"):
     global ram
-    if localscript == "GLOBAL":
-        ram = {
-            "GLOBAL": {
-                "local.nowOblast": "GLOBAL",
-                "itp": "<component: itp>",
-                "local": "<class: Local>",
-                "raise": "<module: raise>",
-                "console": "<class: Console>",
-                "logCalls": [], # Прописка логов
-                "timesCall": 0,
-                "types": "<module: types>",
-                "last": "\n"
-            }
-        }
-    else:
-        ram[localscript] = {
-            "local.nowOblast": "GLOBAL",
-            "itp": "<component: itp>",
-            "local": "<class: Local>",
-            "raise": "<module: raise>",
-            "console": "<class: Console>",
-            "logCalls": [], # Прописка логов
-            "timesCall": 0,
-            "types": "<module: types>",
-            "last": "\n"
-        }
+    if localscript != "GLOBAL":
+        ram[localscript] = {}
         ram["GLOBAL"]["local.nowOblast"] = localscript
     i = 0
     kortezh = (True, "normal")
