@@ -1,0 +1,12 @@
+echo "Программа инцилизатор"
+echo "----------------------"
+a = True
+b = 0
+while a: "a = raise.iserror "b \xw types.int key.input "Количество секторов\k """
+for s: range b: "disk.simulator.sectore.create "disk", s, 0\cconsole.start\cecho s"
+c = types.str b
+disk.simulator.sectore.write "disk", 0, "sectore=" + c + "\nboot=8"
+logCalls = []
+echo "Готово!"
+echo "----- Теперь можете закрыть эту программу -----"
+stop True
