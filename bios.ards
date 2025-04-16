@@ -1,0 +1,16 @@
+echo "-------- BIOS --------"; // Приветствие
+echo "BIOS \m activity"
+echo "CONTROL START!"
+echo "-" * 22
+a = raise.iserror "disk.simulator.sectore.read "disk", 0"
+if a: "echo "read BD\k B"\cstop True": "echo "read BD\k G""
+data = disk.simulator.sectore.read "disk", 0
+cl = split data, "\n"
+boot = value cl: 1
+ba = split boot, "\w"
+vb = types.int value ba: 1
+a = raise.iserror "disk.simulator.sectore.read "disk", vb"
+if a: "echo "read Loader\k B"\cstop True": "echo "read Loader\k G""
+databoot = disk.simulator.sectore.read "disk", vb
+echo "start Loader..."
+if databoot != "": "itp.localscript databoot\k "loader"": "echo "loader is not booted""
