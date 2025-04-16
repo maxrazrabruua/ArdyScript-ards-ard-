@@ -1,5 +1,5 @@
 echo "Загрузчик: запустился\nЗапускаю первые 8 секторов..."
 sectors = []
-for s: range 8: "r = s + 9\ca = raise.iserror "disk.simulator.sectore.read "disk", r"\cif a\k "echo "Загрузчик: Не найден сектор!"\xcstop True"\k "sectors = append sectors disk.simulator.sectore.read "disk", r""
+for s: range 8: "r = s + 10\ca = raise.iserror "disk.simulator.sectore.read "disk", r"\cif a\k "echo "Загрузчик: Не найден сектор!"\xcstop True"\k "sectors = append sectors disk.simulator.sectore.read "disk", r""
 code = join sectors "\n"
 itp.localscript code: "core"
